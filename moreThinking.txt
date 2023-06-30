@@ -1,0 +1,31 @@
+Let's plan out the functionality for my dashboard here.
+
+The basis of the project is class, since this get translated to the graphql schemas, and it's what matters the most.
+
+
+
+There are many many classes. I am gonna want to standardization, and I need to think in terms of relationships to things. 
+The node I would say is USER, user will have a lot of data relate to him, however, there will be many different dasboards.
+
+So for example, for the school side, there are classes, assignmment, quizes, grades, lots, of this are their own classes.
+And the way I frame this relations is important. the problem with classes is that they have too much data inside.
+So I can put the classes, and their id, inside user, and then the assignment, now that they belong to the classes, but don't need to 
+be inside the class object. 
+
+This is all database desing, and the decision will depend on many things. 
+
+Let's think about how I am gonna query the data. 
+
+Now I obviously want all the data to be kept in the backend, problem is that maybe I don't need to keep it all and insted, the resolver can query the
+canvas api, everysingle time and give the filteres results to the frontEnd. 
+
+This is a good idea, because it will keep the dat fresh, and I only need to store the additional data that I will be using. 
+
+
+Let's think about quizes for example. I do want that data stucture, I also want the user data. 
+Nevermind there are many data points that I need. 
+
+I need to take a crashcourse on designing a database backend. 
+
+
+Okay let's think right now about what my class for my backend will be for the bug tracker. let's start designing right away with typescript.

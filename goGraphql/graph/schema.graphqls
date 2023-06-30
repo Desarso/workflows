@@ -40,8 +40,14 @@ type Query {
 }
 
 
+
+#I am using both the words create and add, I should use a single one
+#add, delete, mutate/update
+#I am gonna go with add, delete, mutate
 type Mutation{
   createChessGame(fen: String!, gameId: String!, receiverID: String!, requesterID: String!, requesterColor: String! ): chessGame!
+  deleteChessGame(id: ID!): chessGame!
+
   addChessUser(id: ID!, username: String!, cat_url: String!): chessUser!
   deleteChessUser(id: ID!): chessUser!
   changeFen(id: ID!, fen: String!): chessGame!
