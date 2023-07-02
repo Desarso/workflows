@@ -40,27 +40,47 @@ type Query {
 }
 
 
-
 #I am using both the words create and add, I should use a single one
 #add, delete, mutate/update
 #I am gonna go with add, delete, mutate
+
 type Mutation{
-  createChessGame(fen: String!, gameId: String!, receiverID: String!, requesterID: String!, requesterColor: String! ): chessGame!
+
+
+#chessGame mutations
+  addChessGame(fen: String!, gameId: String!, receiverID: String!, requesterID: String!, requesterColor: String! ): chessGame!
   deleteChessGame(id: ID!): chessGame!
+  mutateChessGame(id: ID!, receiverId: String!, receiverColor: String!, requesterId: String!): chessGame!
+  moveChessPiece(from: String!, to: String!, endFen: String!, gameId: String!, promotion: String): chessGame!
+  changeFen(id: ID!, fen: String!): chessGame!
+  changeChessTurn(id: ID!, turn: String!): chessGame!
+  startChessGame(gameId: String!): chessGame!
+
+
+
 
   addChessUser(id: ID!, username: String!, cat_url: String!): chessUser!
   deleteChessUser(id: ID!): chessUser!
-  changeFen(id: ID!, fen: String!): chessGame!
-  changeChessTurn(id: ID!, turn: String!): chessGame!
+  mutateChessUser(id: ID!, username: String!, cat_url: String!): chessUser!
   updateLastSeenChess(id: ID!): chessUser!
+
+
+ 
+
+
+
   #this notif builds the ID with the received data
+  #this 
   sendChessRequest(gameId: String!, requesterID: String!, requesterColor: String!, receiverID: String!): chessUser!
-  startChessGame(gameId: String!): chessGame!
-  moveChessPiece(from: String!, to: String!, endFen: String!, gameId: String!, promotion: String): chessGame!
+
+
+
 }
 
+
+
 type Subscription {
-  chessGame(id: ID!): chessGame!
-  chessUsers: [chessUser!]!
-  chessRequest: chessRequest!
+  chessGamesSub(id: ID!): chessGame!
+  chessUsersSub: [chessUser!]!
+  chessRequestsSub: chessRequest!
 }

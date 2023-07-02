@@ -48,12 +48,15 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
+		AddChessGame        func(childComplexity int, fen string, gameID string, receiverID string, requesterID string, requesterColor string) int
 		AddChessUser        func(childComplexity int, id string, username string, catURL string) int
 		ChangeChessTurn     func(childComplexity int, id string, turn string) int
 		ChangeFen           func(childComplexity int, id string, fen string) int
-		CreateChessGame     func(childComplexity int, fen string, gameID string, receiverID string, requesterID string, requesterColor string) int
+		DeleteChessGame     func(childComplexity int, id string) int
 		DeleteChessUser     func(childComplexity int, id string) int
 		MoveChessPiece      func(childComplexity int, from string, to string, endFen string, gameID string, promotion *string) int
+		MutateChessGame     func(childComplexity int, id string, receiverID string, receiverColor string, requesterID string) int
+		MutateChessUser     func(childComplexity int, id string, username string, catURL string) int
 		SendChessRequest    func(childComplexity int, gameID string, requesterID string, requesterColor string, receiverID string) int
 		StartChessGame      func(childComplexity int, gameID string) int
 		UpdateLastSeenChess func(childComplexity int, id string) int
@@ -66,9 +69,9 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		ChessGame    func(childComplexity int, id string) int
-		ChessRequest func(childComplexity int) int
-		ChessUsers   func(childComplexity int) int
+		ChessGamesSub    func(childComplexity int, id string) int
+		ChessRequestsSub func(childComplexity int) int
+		ChessUsersSub    func(childComplexity int) int
 	}
 
 	ChessGame struct {
@@ -107,15 +110,18 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateChessGame(ctx context.Context, fen string, gameID string, receiverID string, requesterID string, requesterColor string) (*model.ChessGame, error)
-	AddChessUser(ctx context.Context, id string, username string, catURL string) (*model.ChessUser, error)
-	DeleteChessUser(ctx context.Context, id string) (*model.ChessUser, error)
+	AddChessGame(ctx context.Context, fen string, gameID string, receiverID string, requesterID string, requesterColor string) (*model.ChessGame, error)
+	DeleteChessGame(ctx context.Context, id string) (*model.ChessGame, error)
+	MutateChessGame(ctx context.Context, id string, receiverID string, receiverColor string, requesterID string) (*model.ChessGame, error)
+	MoveChessPiece(ctx context.Context, from string, to string, endFen string, gameID string, promotion *string) (*model.ChessGame, error)
 	ChangeFen(ctx context.Context, id string, fen string) (*model.ChessGame, error)
 	ChangeChessTurn(ctx context.Context, id string, turn string) (*model.ChessGame, error)
+	StartChessGame(ctx context.Context, gameID string) (*model.ChessGame, error)
+	AddChessUser(ctx context.Context, id string, username string, catURL string) (*model.ChessUser, error)
+	DeleteChessUser(ctx context.Context, id string) (*model.ChessUser, error)
+	MutateChessUser(ctx context.Context, id string, username string, catURL string) (*model.ChessUser, error)
 	UpdateLastSeenChess(ctx context.Context, id string) (*model.ChessUser, error)
 	SendChessRequest(ctx context.Context, gameID string, requesterID string, requesterColor string, receiverID string) (*model.ChessUser, error)
-	StartChessGame(ctx context.Context, gameID string) (*model.ChessGame, error)
-	MoveChessPiece(ctx context.Context, from string, to string, endFen string, gameID string, promotion *string) (*model.ChessGame, error)
 }
 type QueryResolver interface {
 	GetChessGames(ctx context.Context) ([]*model.ChessGame, error)
@@ -123,9 +129,9 @@ type QueryResolver interface {
 	GetUsers(ctx context.Context) ([]*model.ChessUser, error)
 }
 type SubscriptionResolver interface {
-	ChessGame(ctx context.Context, id string) (<-chan *model.ChessGame, error)
-	ChessUsers(ctx context.Context) (<-chan []*model.ChessUser, error)
-	ChessRequest(ctx context.Context) (<-chan *model.ChessRequest, error)
+	ChessGamesSub(ctx context.Context, id string) (<-chan *model.ChessGame, error)
+	ChessUsersSub(ctx context.Context) (<-chan []*model.ChessUser, error)
+	ChessRequestsSub(ctx context.Context) (<-chan *model.ChessRequest, error)
 }
 
 type executableSchema struct {
@@ -142,6 +148,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Mutation.addChessGame":
+		if e.complexity.Mutation.AddChessGame == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addChessGame_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddChessGame(childComplexity, args["fen"].(string), args["gameId"].(string), args["receiverID"].(string), args["requesterID"].(string), args["requesterColor"].(string)), true
 
 	case "Mutation.addChessUser":
 		if e.complexity.Mutation.AddChessUser == nil {
@@ -179,17 +197,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ChangeFen(childComplexity, args["id"].(string), args["fen"].(string)), true
 
-	case "Mutation.createChessGame":
-		if e.complexity.Mutation.CreateChessGame == nil {
+	case "Mutation.deleteChessGame":
+		if e.complexity.Mutation.DeleteChessGame == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_createChessGame_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_deleteChessGame_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateChessGame(childComplexity, args["fen"].(string), args["gameId"].(string), args["receiverID"].(string), args["requesterID"].(string), args["requesterColor"].(string)), true
+		return e.complexity.Mutation.DeleteChessGame(childComplexity, args["id"].(string)), true
 
 	case "Mutation.deleteChessUser":
 		if e.complexity.Mutation.DeleteChessUser == nil {
@@ -214,6 +232,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.MoveChessPiece(childComplexity, args["from"].(string), args["to"].(string), args["endFen"].(string), args["gameId"].(string), args["promotion"].(*string)), true
+
+	case "Mutation.mutateChessGame":
+		if e.complexity.Mutation.MutateChessGame == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_mutateChessGame_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.MutateChessGame(childComplexity, args["id"].(string), args["receiverId"].(string), args["receiverColor"].(string), args["requesterId"].(string)), true
+
+	case "Mutation.mutateChessUser":
+		if e.complexity.Mutation.MutateChessUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_mutateChessUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.MutateChessUser(childComplexity, args["id"].(string), args["username"].(string), args["cat_url"].(string)), true
 
 	case "Mutation.sendChessRequest":
 		if e.complexity.Mutation.SendChessRequest == nil {
@@ -277,31 +319,31 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetUsers(childComplexity), true
 
-	case "Subscription.chessGame":
-		if e.complexity.Subscription.ChessGame == nil {
+	case "Subscription.chessGamesSub":
+		if e.complexity.Subscription.ChessGamesSub == nil {
 			break
 		}
 
-		args, err := ec.field_Subscription_chessGame_args(context.TODO(), rawArgs)
+		args, err := ec.field_Subscription_chessGamesSub_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Subscription.ChessGame(childComplexity, args["id"].(string)), true
+		return e.complexity.Subscription.ChessGamesSub(childComplexity, args["id"].(string)), true
 
-	case "Subscription.chessRequest":
-		if e.complexity.Subscription.ChessRequest == nil {
+	case "Subscription.chessRequestsSub":
+		if e.complexity.Subscription.ChessRequestsSub == nil {
 			break
 		}
 
-		return e.complexity.Subscription.ChessRequest(childComplexity), true
+		return e.complexity.Subscription.ChessRequestsSub(childComplexity), true
 
-	case "Subscription.chessUsers":
-		if e.complexity.Subscription.ChessUsers == nil {
+	case "Subscription.chessUsersSub":
+		if e.complexity.Subscription.ChessUsersSub == nil {
 			break
 		}
 
-		return e.complexity.Subscription.ChessUsers(childComplexity), true
+		return e.complexity.Subscription.ChessUsersSub(childComplexity), true
 
 	case "chessGame.fen":
 		if e.complexity.ChessGame.Fen == nil {
@@ -560,6 +602,57 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_addChessGame_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["fen"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fen"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["fen"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["gameId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gameId"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["gameId"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["receiverID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("receiverID"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["receiverID"] = arg2
+	var arg3 string
+	if tmp, ok := rawArgs["requesterID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesterID"))
+		arg3, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["requesterID"] = arg3
+	var arg4 string
+	if tmp, ok := rawArgs["requesterColor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesterColor"))
+		arg4, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["requesterColor"] = arg4
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_addChessUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -641,54 +734,18 @@ func (ec *executionContext) field_Mutation_changeFen_args(ctx context.Context, r
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_createChessGame_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_deleteChessGame_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["fen"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fen"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["fen"] = arg0
-	var arg1 string
-	if tmp, ok := rawArgs["gameId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gameId"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["gameId"] = arg1
-	var arg2 string
-	if tmp, ok := rawArgs["receiverID"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("receiverID"))
-		arg2, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["receiverID"] = arg2
-	var arg3 string
-	if tmp, ok := rawArgs["requesterID"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesterID"))
-		arg3, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["requesterID"] = arg3
-	var arg4 string
-	if tmp, ok := rawArgs["requesterColor"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesterColor"))
-		arg4, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["requesterColor"] = arg4
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -755,6 +812,81 @@ func (ec *executionContext) field_Mutation_moveChessPiece_args(ctx context.Conte
 		}
 	}
 	args["promotion"] = arg4
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_mutateChessGame_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["receiverId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("receiverId"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["receiverId"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["receiverColor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("receiverColor"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["receiverColor"] = arg2
+	var arg3 string
+	if tmp, ok := rawArgs["requesterId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesterId"))
+		arg3, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["requesterId"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_mutateChessUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["username"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["username"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["cat_url"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cat_url"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cat_url"] = arg2
 	return args, nil
 }
 
@@ -860,7 +992,7 @@ func (ec *executionContext) field_Query_getChessGame_args(ctx context.Context, r
 	return args, nil
 }
 
-func (ec *executionContext) field_Subscription_chessGame_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Subscription_chessGamesSub_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -913,8 +1045,8 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Mutation_createChessGame(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_createChessGame(ctx, field)
+func (ec *executionContext) _Mutation_addChessGame(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addChessGame(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -927,7 +1059,7 @@ func (ec *executionContext) _Mutation_createChessGame(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateChessGame(rctx, fc.Args["fen"].(string), fc.Args["gameId"].(string), fc.Args["receiverID"].(string), fc.Args["requesterID"].(string), fc.Args["requesterColor"].(string))
+		return ec.resolvers.Mutation().AddChessGame(rctx, fc.Args["fen"].(string), fc.Args["gameId"].(string), fc.Args["receiverID"].(string), fc.Args["requesterID"].(string), fc.Args["requesterColor"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -944,7 +1076,7 @@ func (ec *executionContext) _Mutation_createChessGame(ctx context.Context, field
 	return ec.marshalNchessGame2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessGame(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_createChessGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_addChessGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -981,15 +1113,15 @@ func (ec *executionContext) fieldContext_Mutation_createChessGame(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createChessGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_addChessGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_addChessUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_addChessUser(ctx, field)
+func (ec *executionContext) _Mutation_deleteChessGame(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteChessGame(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1002,7 +1134,7 @@ func (ec *executionContext) _Mutation_addChessUser(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddChessUser(rctx, fc.Args["id"].(string), fc.Args["username"].(string), fc.Args["cat_url"].(string))
+		return ec.resolvers.Mutation().DeleteChessGame(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1014,12 +1146,12 @@ func (ec *executionContext) _Mutation_addChessUser(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.ChessUser)
+	res := resTmp.(*model.ChessGame)
 	fc.Result = res
-	return ec.marshalNchessUser2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessUser(ctx, field.Selections, res)
+	return ec.marshalNchessGame2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessGame(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_addChessUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteChessGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1028,17 +1160,25 @@ func (ec *executionContext) fieldContext_Mutation_addChessUser(ctx context.Conte
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_chessUser_id(ctx, field)
-			case "username":
-				return ec.fieldContext_chessUser_username(ctx, field)
-			case "last_seen":
-				return ec.fieldContext_chessUser_last_seen(ctx, field)
-			case "cat_url":
-				return ec.fieldContext_chessUser_cat_url(ctx, field)
-			case "chessRequests":
-				return ec.fieldContext_chessUser_chessRequests(ctx, field)
+				return ec.fieldContext_chessGame_id(ctx, field)
+			case "receiverId":
+				return ec.fieldContext_chessGame_receiverId(ctx, field)
+			case "receiverColor":
+				return ec.fieldContext_chessGame_receiverColor(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_chessGame_requesterId(ctx, field)
+			case "users":
+				return ec.fieldContext_chessGame_users(ctx, field)
+			case "moves":
+				return ec.fieldContext_chessGame_moves(ctx, field)
+			case "fen":
+				return ec.fieldContext_chessGame_fen(ctx, field)
+			case "turn":
+				return ec.fieldContext_chessGame_turn(ctx, field)
+			case "started":
+				return ec.fieldContext_chessGame_started(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type chessUser", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type chessGame", field.Name)
 		},
 	}
 	defer func() {
@@ -1048,15 +1188,15 @@ func (ec *executionContext) fieldContext_Mutation_addChessUser(ctx context.Conte
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_addChessUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_deleteChessGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_deleteChessUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_deleteChessUser(ctx, field)
+func (ec *executionContext) _Mutation_mutateChessGame(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_mutateChessGame(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1069,7 +1209,7 @@ func (ec *executionContext) _Mutation_deleteChessUser(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteChessUser(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().MutateChessGame(rctx, fc.Args["id"].(string), fc.Args["receiverId"].(string), fc.Args["receiverColor"].(string), fc.Args["requesterId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1081,12 +1221,12 @@ func (ec *executionContext) _Mutation_deleteChessUser(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.ChessUser)
+	res := resTmp.(*model.ChessGame)
 	fc.Result = res
-	return ec.marshalNchessUser2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessUser(ctx, field.Selections, res)
+	return ec.marshalNchessGame2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessGame(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_deleteChessUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_mutateChessGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1095,17 +1235,25 @@ func (ec *executionContext) fieldContext_Mutation_deleteChessUser(ctx context.Co
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_chessUser_id(ctx, field)
-			case "username":
-				return ec.fieldContext_chessUser_username(ctx, field)
-			case "last_seen":
-				return ec.fieldContext_chessUser_last_seen(ctx, field)
-			case "cat_url":
-				return ec.fieldContext_chessUser_cat_url(ctx, field)
-			case "chessRequests":
-				return ec.fieldContext_chessUser_chessRequests(ctx, field)
+				return ec.fieldContext_chessGame_id(ctx, field)
+			case "receiverId":
+				return ec.fieldContext_chessGame_receiverId(ctx, field)
+			case "receiverColor":
+				return ec.fieldContext_chessGame_receiverColor(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_chessGame_requesterId(ctx, field)
+			case "users":
+				return ec.fieldContext_chessGame_users(ctx, field)
+			case "moves":
+				return ec.fieldContext_chessGame_moves(ctx, field)
+			case "fen":
+				return ec.fieldContext_chessGame_fen(ctx, field)
+			case "turn":
+				return ec.fieldContext_chessGame_turn(ctx, field)
+			case "started":
+				return ec.fieldContext_chessGame_started(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type chessUser", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type chessGame", field.Name)
 		},
 	}
 	defer func() {
@@ -1115,7 +1263,82 @@ func (ec *executionContext) fieldContext_Mutation_deleteChessUser(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteChessUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_mutateChessGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_moveChessPiece(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_moveChessPiece(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().MoveChessPiece(rctx, fc.Args["from"].(string), fc.Args["to"].(string), fc.Args["endFen"].(string), fc.Args["gameId"].(string), fc.Args["promotion"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ChessGame)
+	fc.Result = res
+	return ec.marshalNchessGame2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessGame(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_moveChessPiece(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_chessGame_id(ctx, field)
+			case "receiverId":
+				return ec.fieldContext_chessGame_receiverId(ctx, field)
+			case "receiverColor":
+				return ec.fieldContext_chessGame_receiverColor(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_chessGame_requesterId(ctx, field)
+			case "users":
+				return ec.fieldContext_chessGame_users(ctx, field)
+			case "moves":
+				return ec.fieldContext_chessGame_moves(ctx, field)
+			case "fen":
+				return ec.fieldContext_chessGame_fen(ctx, field)
+			case "turn":
+				return ec.fieldContext_chessGame_turn(ctx, field)
+			case "started":
+				return ec.fieldContext_chessGame_started(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type chessGame", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_moveChessPiece_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -1272,6 +1495,282 @@ func (ec *executionContext) fieldContext_Mutation_changeChessTurn(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_startChessGame(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_startChessGame(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().StartChessGame(rctx, fc.Args["gameId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ChessGame)
+	fc.Result = res
+	return ec.marshalNchessGame2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessGame(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_startChessGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_chessGame_id(ctx, field)
+			case "receiverId":
+				return ec.fieldContext_chessGame_receiverId(ctx, field)
+			case "receiverColor":
+				return ec.fieldContext_chessGame_receiverColor(ctx, field)
+			case "requesterId":
+				return ec.fieldContext_chessGame_requesterId(ctx, field)
+			case "users":
+				return ec.fieldContext_chessGame_users(ctx, field)
+			case "moves":
+				return ec.fieldContext_chessGame_moves(ctx, field)
+			case "fen":
+				return ec.fieldContext_chessGame_fen(ctx, field)
+			case "turn":
+				return ec.fieldContext_chessGame_turn(ctx, field)
+			case "started":
+				return ec.fieldContext_chessGame_started(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type chessGame", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_startChessGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addChessUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addChessUser(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddChessUser(rctx, fc.Args["id"].(string), fc.Args["username"].(string), fc.Args["cat_url"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ChessUser)
+	fc.Result = res
+	return ec.marshalNchessUser2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addChessUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_chessUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_chessUser_username(ctx, field)
+			case "last_seen":
+				return ec.fieldContext_chessUser_last_seen(ctx, field)
+			case "cat_url":
+				return ec.fieldContext_chessUser_cat_url(ctx, field)
+			case "chessRequests":
+				return ec.fieldContext_chessUser_chessRequests(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type chessUser", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addChessUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteChessUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteChessUser(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteChessUser(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ChessUser)
+	fc.Result = res
+	return ec.marshalNchessUser2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteChessUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_chessUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_chessUser_username(ctx, field)
+			case "last_seen":
+				return ec.fieldContext_chessUser_last_seen(ctx, field)
+			case "cat_url":
+				return ec.fieldContext_chessUser_cat_url(ctx, field)
+			case "chessRequests":
+				return ec.fieldContext_chessUser_chessRequests(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type chessUser", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteChessUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_mutateChessUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_mutateChessUser(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().MutateChessUser(rctx, fc.Args["id"].(string), fc.Args["username"].(string), fc.Args["cat_url"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ChessUser)
+	fc.Result = res
+	return ec.marshalNchessUser2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_mutateChessUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_chessUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_chessUser_username(ctx, field)
+			case "last_seen":
+				return ec.fieldContext_chessUser_last_seen(ctx, field)
+			case "cat_url":
+				return ec.fieldContext_chessUser_cat_url(ctx, field)
+			case "chessRequests":
+				return ec.fieldContext_chessUser_chessRequests(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type chessUser", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_mutateChessUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateLastSeenChess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_updateLastSeenChess(ctx, field)
 	if err != nil {
@@ -1400,156 +1899,6 @@ func (ec *executionContext) fieldContext_Mutation_sendChessRequest(ctx context.C
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_sendChessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_startChessGame(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_startChessGame(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().StartChessGame(rctx, fc.Args["gameId"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.ChessGame)
-	fc.Result = res
-	return ec.marshalNchessGame2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessGame(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_startChessGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_chessGame_id(ctx, field)
-			case "receiverId":
-				return ec.fieldContext_chessGame_receiverId(ctx, field)
-			case "receiverColor":
-				return ec.fieldContext_chessGame_receiverColor(ctx, field)
-			case "requesterId":
-				return ec.fieldContext_chessGame_requesterId(ctx, field)
-			case "users":
-				return ec.fieldContext_chessGame_users(ctx, field)
-			case "moves":
-				return ec.fieldContext_chessGame_moves(ctx, field)
-			case "fen":
-				return ec.fieldContext_chessGame_fen(ctx, field)
-			case "turn":
-				return ec.fieldContext_chessGame_turn(ctx, field)
-			case "started":
-				return ec.fieldContext_chessGame_started(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type chessGame", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_startChessGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_moveChessPiece(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_moveChessPiece(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().MoveChessPiece(rctx, fc.Args["from"].(string), fc.Args["to"].(string), fc.Args["endFen"].(string), fc.Args["gameId"].(string), fc.Args["promotion"].(*string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.ChessGame)
-	fc.Result = res
-	return ec.marshalNchessGame2ᚖgithubᚗcomᚋdesarsoᚋgoGraphqlᚋgraphᚋmodelᚐChessGame(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_moveChessPiece(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_chessGame_id(ctx, field)
-			case "receiverId":
-				return ec.fieldContext_chessGame_receiverId(ctx, field)
-			case "receiverColor":
-				return ec.fieldContext_chessGame_receiverColor(ctx, field)
-			case "requesterId":
-				return ec.fieldContext_chessGame_requesterId(ctx, field)
-			case "users":
-				return ec.fieldContext_chessGame_users(ctx, field)
-			case "moves":
-				return ec.fieldContext_chessGame_moves(ctx, field)
-			case "fen":
-				return ec.fieldContext_chessGame_fen(ctx, field)
-			case "turn":
-				return ec.fieldContext_chessGame_turn(ctx, field)
-			case "started":
-				return ec.fieldContext_chessGame_started(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type chessGame", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_moveChessPiece_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -1880,8 +2229,8 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Subscription_chessGame(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_chessGame(ctx, field)
+func (ec *executionContext) _Subscription_chessGamesSub(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_chessGamesSub(ctx, field)
 	if err != nil {
 		return nil
 	}
@@ -1894,7 +2243,7 @@ func (ec *executionContext) _Subscription_chessGame(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().ChessGame(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Subscription().ChessGamesSub(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1925,7 +2274,7 @@ func (ec *executionContext) _Subscription_chessGame(ctx context.Context, field g
 	}
 }
 
-func (ec *executionContext) fieldContext_Subscription_chessGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Subscription_chessGamesSub(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Subscription",
 		Field:      field,
@@ -1962,15 +2311,15 @@ func (ec *executionContext) fieldContext_Subscription_chessGame(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Subscription_chessGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Subscription_chessGamesSub_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Subscription_chessUsers(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_chessUsers(ctx, field)
+func (ec *executionContext) _Subscription_chessUsersSub(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_chessUsersSub(ctx, field)
 	if err != nil {
 		return nil
 	}
@@ -1983,7 +2332,7 @@ func (ec *executionContext) _Subscription_chessUsers(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().ChessUsers(rctx)
+		return ec.resolvers.Subscription().ChessUsersSub(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2014,7 +2363,7 @@ func (ec *executionContext) _Subscription_chessUsers(ctx context.Context, field 
 	}
 }
 
-func (ec *executionContext) fieldContext_Subscription_chessUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Subscription_chessUsersSub(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Subscription",
 		Field:      field,
@@ -2039,8 +2388,8 @@ func (ec *executionContext) fieldContext_Subscription_chessUsers(ctx context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _Subscription_chessRequest(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_chessRequest(ctx, field)
+func (ec *executionContext) _Subscription_chessRequestsSub(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_chessRequestsSub(ctx, field)
 	if err != nil {
 		return nil
 	}
@@ -2053,7 +2402,7 @@ func (ec *executionContext) _Subscription_chessRequest(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().ChessRequest(rctx)
+		return ec.resolvers.Subscription().ChessRequestsSub(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2084,7 +2433,7 @@ func (ec *executionContext) _Subscription_chessRequest(ctx context.Context, fiel
 	}
 }
 
-func (ec *executionContext) fieldContext_Subscription_chessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Subscription_chessRequestsSub(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Subscription",
 		Field:      field,
@@ -4901,28 +5250,37 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createChessGame":
+		case "addChessGame":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createChessGame(ctx, field)
+				return ec._Mutation_addChessGame(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "addChessUser":
+		case "deleteChessGame":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_addChessUser(ctx, field)
+				return ec._Mutation_deleteChessGame(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "deleteChessUser":
+		case "mutateChessGame":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteChessUser(ctx, field)
+				return ec._Mutation_mutateChessGame(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "moveChessPiece":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_moveChessPiece(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -4946,6 +5304,42 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "startChessGame":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_startChessGame(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addChessUser":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addChessUser(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteChessUser":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteChessUser(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "mutateChessUser":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_mutateChessUser(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "updateLastSeenChess":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -4959,24 +5353,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_sendChessRequest(ctx, field)
-			})
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "startChessGame":
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_startChessGame(ctx, field)
-			})
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "moveChessPiece":
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_moveChessPiece(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -5117,12 +5493,12 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 
 	switch fields[0].Name {
-	case "chessGame":
-		return ec._Subscription_chessGame(ctx, fields[0])
-	case "chessUsers":
-		return ec._Subscription_chessUsers(ctx, fields[0])
-	case "chessRequest":
-		return ec._Subscription_chessRequest(ctx, fields[0])
+	case "chessGamesSub":
+		return ec._Subscription_chessGamesSub(ctx, fields[0])
+	case "chessUsersSub":
+		return ec._Subscription_chessUsersSub(ctx, fields[0])
+	case "chessRequestsSub":
+		return ec._Subscription_chessRequestsSub(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
